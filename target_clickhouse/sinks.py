@@ -5,6 +5,8 @@ from __future__ import annotations
 from logging import Logger
 from typing import Any, Iterable
 
+import typing as t
+import cardinality
 import jsonschema.exceptions as jsonschema_exceptions
 import simplejson as json
 import sqlalchemy
@@ -12,11 +14,14 @@ from pendulum import now
 from singer_sdk.helpers._typing import (
     DatetimeErrorTreatmentEnum,
 )
+from singer_sdk.connectors import SQLConnector
 from singer_sdk.sinks import SQLSink
 from sqlalchemy.sql.expression import bindparam
 
 from target_clickhouse.connectors import ClickhouseConnector
 
+if t.TYPE_CHECKING:
+    from singer_sdk.target_base import Target
 
 class ClickhouseSink(SQLSink):
     """clickhouse target sink class."""
@@ -25,6 +30,17 @@ class ClickhouseSink(SQLSink):
 
     # Investigate larger batch sizes without OOM.
     MAX_SIZE_DEFAULT = 10000
+
+    def __init__(
+        self,
+        target: Target,
+        stream_name: str,
+        schema: dict,
+        key_properties: t.Sequence[str] | None,
+        connector: SQLConnector | None = None,
+    ) -> None:
+        self.MAX_SIZE_DEFAULT = dict(target.config).get("batch_size_rows", 10000)
+        super().__init__(target, stream_name, schema, key_properties, connector)
 
     @property
     def max_size(self) -> int:
@@ -85,6 +101,8 @@ class ClickhouseSink(SQLSink):
             for key, value in record.items():
                 if isinstance(value, (dict, list)):
                     record[key] = json.dumps(value)
+
+        self.logger.info("Bulk inserting.count: %d", cardinality.count(records))
 
         res = super().bulk_insert_records(full_table_name, schema, records)
 

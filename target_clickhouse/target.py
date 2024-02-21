@@ -138,6 +138,15 @@ class TargetClickhouse(SQLTarget):
             description="Run 'OPTIMIZE TABLE' after data insert. Useful when"
                         "table engine removes duplicate rows.",
         ),
+        th.Property(
+            "batch_size_rows",
+            th.IntegerType,
+            required=False,
+            default=10000,
+            description="Maximum number of rows in each batch. At the end of each batch, the rows "
+                        "in the batch are loaded into Clickhouse. "
+                        "(Default: 100000)",
+        ),
     ).to_dict()
 
     default_sink_class = ClickhouseSink

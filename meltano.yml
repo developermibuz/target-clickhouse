@@ -41,3 +41,7 @@ plugins:
       kind: string
       required: false
       description: "The name of the table to load data into. Defaults to the stream name."
+    - name: batch_size_rows
+      kind: integer
+      required: false
+      description: "Maximum number of rows in each batch. (Default: 100000)"
